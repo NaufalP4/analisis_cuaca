@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Klasifikasi Kondisi Langit - Demo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+  </head>
+  <body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+      <div class="container">
+        <a class="navbar-brand fw-bold" href="/">☁️ Klasifikasi Kondisi Langit</a>
+      </div>
+    </nav>
+
+    <div class="container my-4">
+      <!-- Upload -->
+      <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data" class="d-flex gap-2 align-items-center">
+            <input class="form-control" type="file" name="image" accept="image/*" required>
+            <button class="btn btn-primary" type="submit">Upload & Analisis</button>
+          </form>
+          <div class="form-text mt-2">
+            Upload foto langit (siang/hari). Sistem akan melakukan preprocessing citra dan menampilkan probabilitas cuaca.
+          </div>
+        </div>
+      </div>
+
+      <!-- Main content -->
+      <div class="row">
+        <div class="col-lg-6">
+          <div class="card shadow-sm">
+            <div class="card-header">Gambar Asli</div>
+            <div class="card-body d-flex justify-content-center align-items-center" style="min-height:280px;">
+              {% if result %}
+                <img src="{{ url_for('static', filename='uploads/' ~ result.filename) }}" alt="uploaded" class="img-fluid rounded">
+              {% else %}
+                <div class="text-muted">Belum ada gambar. Silakan upload foto langit.</div>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if result %}
+          <div class="card mt-3 shadow-sm">
+            <div class="card-header">Detail Preprocessing & Kompresi</div>
+            <div class="card-body">
+              <p><strong>Mean intensity:</strong> {{ result.mean_intensity }}</p>
+              <p><strong>Edge density (Canny):</strong> {{ result.edge_density }}</p>
+              <p><strong>Ukuran file (simulasi):</strong></p>
+              <ul>
+                <li>Original: {{ result.sizes_hr.orig }}</li>
+                <li>JPEG (q85): {{ result.sizes_hr.jpg_q85 }}</li>
+                <li>JPEG (q40): {{ result.sizes_hr.jpg_q40 }}</li>
+                <li>PNG (opt): {{ result.sizes_hr.png_opt }}</li>
+              </ul>
+              <p><small class="text-muted">File kompresi disimpan di folder <code>static/uploads/</code>.</small></p>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="col-lg-6">
+          <div class="card shadow-sm">
+            <div class="card-header">Analisis & Probabilitas</div>
+            <div class="card-body">
+              {% if result %}
+                {% set top = [('Cerah', result.probs.cerah), ('Berawan', result.probs.berawan), ('Mendung/Hujan', result.probs.mendung)] | sort(attribute=1, reverse=true) %}
+                <div class="d-flex gap-3 align-items-center">
+
+                  <!-- Circle visual -->
+                  <div class="prob-circles">
+                    <div class="circle big"
+                      style="background: conic-gradient(
+                        rgba(173,216,230,0.95) 0 {{ result.probs.cerah }}%,
+                        rgba(169,169,169,0.95) {{ result.probs.cerah }}% {{ (result.probs.cerah + result.probs.berawan) }}%,
+                        rgba(0,0,139,0.95) {{ (result.probs.cerah + result.probs.berawan) }}% 100%
+                      );">
+                      <div class="center">
+                        <div class="center-percent">{{ top[0][1] }}%</div>
+                        <div class="center-label">{{ top[0][0] }}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Legend -->
+                  <div>
+                    <ul class="list-unstyled mb-0">
+                      <li class="d-flex align-items-center mb-2">
+                        <span class="swatch swatch-cerah me-2"></span> Cerah — <strong>{{ result.probs.cerah }}%</strong>
+                      </li>
+                      <li class="d-flex align-items-center mb-2">
+                        <span class="swatch swatch-berawan me-2"></span> Berawan — <strong>{{ result.probs.berawan }}%</strong>
+                      </li>
+                      <li class="d-flex align-items-center mb-2">
+                        <span class="swatch swatch-mendung me-2"></span> Mendung/Hujan — <strong>{{ result.probs.mendung }}%</strong>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <hr />
+                <div class="diagnosis p-3 rounded" style="background: #f8f9fa;">
+                  <p class="mb-0 fs-5">Hasil:
+                    <strong>
+                      {% if top[0][0] == 'Cerah' %}🌤️ Cerah
+                      {% elif top[0][0] == 'Berawan' %}⛅ Berawan
+                      {% else %}🌧️ Mendung/Hujan
+                      {% endif %}
+                      kemungkinan besar {{ top[0][0] }} ({{ top[0][1] }}%)
+                    </strong>
+                  </p>
+                </div>
+
+                <!-- Tahapan Proses Horizontal -->
+                <div class="card mt-3 shadow-sm">
+                  <div class="card-header">Tahapan Proses Citra</div>
+                  <div class="card-body text-center">
+                    <div class="d-flex flex-wrap justify-content-center gap-3">
+                      {% for step in [
+                        ('gray','Grayscale — Mengubah citra ke skala abu-abu agar analisis fokus pada intensitas cahaya.'),
+                        ('mean','Mean Filter — Merata-ratakan piksel untuk mengurangi noise.'),
+                        ('median','Median Filter — Menghapus noise bintik (salt-pepper).'),
+                        ('gauss','Gaussian Filter — Menghasilkan efek halus alami.'),
+                        ('edge','Deteksi Tepi — Menemukan batas objek dan awan.'),
+                        ('mask','Mask Langit — Menandai area langit 60% teratas.')
+                      ] %}
+                      <div>
+                        <img src="{{ url_for('static', filename='uploads/' ~ result.process[step[0]]) }}" class="img-thumbnail" style="width:180px;height:auto;">
+                        <div class="small text-muted mt-1"><strong>{{ loop.index }}️⃣</strong> {{ step[1] }}</div>
+                      </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+
+              {% else %}
+                <div class="text-muted">Hasil analisis akan tampil di sini setelah mengunggah gambar.</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="mt-4 text-center text-muted">
+        Demo sederhana — Heuristik, bukan model ML. Cocok untuk tugas/experiment.
+      </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

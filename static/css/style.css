@@ -1,0 +1,63 @@
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+.card-header { font-weight: 600; background: linear-gradient(90deg, rgba(255,255,255,0.6), rgba(250,250,250,0.6)); }
+.prob-circles { display:flex; align-items:center; justify-content:center; }
+
+/* circle */
+.circle.big {
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  margin-right: 1rem;
+  border: 6px solid rgba(255,255,255,0.6);
+  -webkit-border-radius: 50%;
+  -moz-border-radius: 50%;
+  -ms-border-radius: 50%;
+  -o-border-radius: 50%;
+}
+
+/* center label inside circle */
+.center {
+  width: 120px;
+  height: 120px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 50%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
+.center-percent {
+  font-size: 22px;
+  font-weight: 700;
+  color: #333;
+}
+.center-label {
+  font-size: 14px;
+  color: #666;
+}
+
+/* legend swatches */
+.swatch {
+  width:18px;
+  height:18px;
+  border-radius:4px;
+  display:inline-block;
+  margin-right:8px;
+  box-shadow: inset 0 -2px 6px rgba(0,0,0,0.08);
+}
+.swatch-cerah { background: rgba(173,216,230,0.95); }
+.swatch-berawan { background: rgba(169,169,169,0.95); }
+.swatch-mendung { background: rgba(0,0,139,0.95); }
+
+/* responsive adjustments */
+@media (max-width: 767px) {
+  .circle.big { width: 160px; height:160px; }
+  .center { width: 90px; height:90px; }
+  .center-percent { font-size: 18px; }
+}
